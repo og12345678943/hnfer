@@ -19,7 +19,7 @@ export default function Profile() {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !router.isReady) return;
 
     // Check if this is the user's own profile
     if (user && user.uid === id) {
@@ -35,10 +35,12 @@ export default function Profile() {
         } else {
           // User not found
           router.push('/');
+          return;
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
         router.push('/');
+        return;
       }
     };
 
@@ -65,14 +67,19 @@ export default function Profile() {
         setPosts([]);
         setLoading(false);
       }
+    }, (error) => {
+      console.error('Error in posts listener:', error);
+      setPosts([]);
+      setLoading(false);
     });
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [id, user, router]);
+  }, [id, user, router, router.isReady]);
 
   const handlePostDeleted = (postId) => {
-    // The real-time listener will automatically update the posts
+    // Remove the post immediately from local state for instant UI update
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
   if (loading) {

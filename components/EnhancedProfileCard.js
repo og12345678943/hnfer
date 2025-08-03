@@ -47,10 +47,24 @@ export default function EnhancedProfileCard({ userData, isOwnProfile, userId }) 
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    
+    let date;
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else if (timestamp && timestamp.seconds) {
+      date = new Date(timestamp.seconds * 1000);
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+      date = new Date(timestamp);
+    } else {
+      return 'Unknown date';
+    }
+    
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
-      month: 'long' 
+      month: 'long',
+      day: 'numeric'
     });
   };
 

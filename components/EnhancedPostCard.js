@@ -67,7 +67,20 @@ export default function EnhancedPostCard({ post, onPostDeleted }) {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    
+    let date;
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else if (timestamp && timestamp.seconds) {
+      date = new Date(timestamp.seconds * 1000);
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+      date = new Date(timestamp);
+    } else {
+      return 'Unknown time';
+    }
+    
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
@@ -78,7 +91,17 @@ export default function EnhancedPostCard({ post, onPostDeleted }) {
     if (minutes < 60) return `${minutes}m`;
     if (hours < 24) return `${hours}h`;
     if (days < 7) return `${days}d`;
-    return date.toLocaleDateString();
+    
+    // Format as "MMM DD, YYYY at HH:MM AM/PM"
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }) + ' at ' + date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
   };
 
   const handleLike = async () => {
@@ -155,10 +178,15 @@ export default function EnhancedPostCard({ post, onPostDeleted }) {
     
     if (confirm('Are you sure you want to delete this post?')) {
       try {
-        await deleteDoc(doc(db, 'posts', post.id));
+        // Call onPostDeleted immediately for instant UI update
         if (onPostDeleted) onPostDeleted(post.id);
+        
+        // Then delete from database
+        await deleteDoc(doc(db, 'posts', post.id));
       } catch (error) {
         console.error('Error deleting post:', error);
+        // If deletion fails, we might want to revert the UI change
+        // For now, we'll let the real-time listener handle it
       }
     }
   };
